@@ -2,74 +2,64 @@ package com.company;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.io.*;
 import java.net.Socket;
 
 public class StartClient {
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> createClientWindow());
+        SwingUtilities.invokeLater(StartClient::createWindow);
     }
 
-    private static void createClientWindow() {
-        JFrame frame = new JFrame("Client");
+    private static void createWindow() {
+        JFrame frame = new JFrame("Quiz klient");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 400);
-        frame.setLayout(new BorderLayout());
+        frame.setSize(400, 200);
+        frame.setLayout(new GridLayout(4, 1));
 
-        // Panel with input fields and button
-        JPanel centerPanel = new JPanel();
-        centerPanel.setLayout(new GridLayout(4, 1, 10, 10));
+        // Pole na imię gracza
+        JTextField nameField = new JTextField();
+        frame.add(new JLabel("Twoje imię:"));
+        frame.add(nameField);
 
-        // Label and field for answer
-        centerPanel.add(new JLabel("Your Answer:"));
+        // Pole na odpowiedź
         JTextField answerField = new JTextField();
-        centerPanel.add(answerField);
+        frame.add(new JLabel("Twoja odpowiedź:"));
+        frame.add(answerField);
 
-        // Button to send answer
-        JButton sendButton = new JButton("Send Answer >>");
-        centerPanel.add(sendButton);
+        // Przycisk do wysłania odpowiedzi
+        JButton sendButton = new JButton("Wyślij odpowiedź");
+        frame.add(sendButton);
 
-        // Nickname field
-        JPanel nickPanel = new JPanel(new BorderLayout());
-        nickPanel.add(new JLabel("Your Nick:"), BorderLayout.WEST);
-        JTextField nickField = new JTextField();
-        nickPanel.add(nickField, BorderLayout.CENTER);
-        centerPanel.add(nickPanel);
-
-        frame.add(centerPanel, BorderLayout.CENTER);
-        frame.setVisible(true);
-
-        // Добавим действие кнопки
-        sendButton.addActionListener(e -> {
-            String nickname = nickField.getText().trim();
+        // Akcja po kliknięciu
+        sendButton.addActionListener((ActionEvent e) -> {
+            String name = nameField.getText().trim();
             String answer = answerField.getText().trim();
 
-            // Проверим, что оба поля заполнены
-            if (!nickname.isEmpty() && !answer.isEmpty()) {
-                sendAnswerToServer(nickname, answer);
-            } else {
-                JOptionPane.showMessageDialog(frame, "Please enter both nickname and answer.");
+            if (name.isEmpty() || answer.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "Wypełnij oba pola!", "Błąd", JOptionPane.ERROR_MESSAGE);
+                return;
             }
+
+            // Format wiadomości: Imię:Odpowiedź
+            String message = name + ":" + answer;
+            sendMessageToServer(message);
+            answerField.setText(""); // czyścimy pole odpowiedzi
         });
-        centerPanel.add(sendButton, BorderLayout.SOUTH);
+
+        frame.setVisible(true);
     }
-    // Метод для отправки ответа на сервер
-    private static void sendAnswerToServer(String nickname, String answer) {
-        // Создаем подключение к серверу
-        try (Socket socket = new Socket("localhost", 12345);  // Подключаемся к серверу
+
+    // Wysyłka wiadomości do serwera
+    private static void sendMessageToServer(String message) {
+        try (Socket socket = new Socket("localhost", 12345);
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
 
-            // Формируем сообщение, которое будем отправлять
-            String message = nickname + "|" + answer;
-            out.println(message);  // Отправляем сообщение на сервер
-
-            // Можно добавить дополнительные действия (например, вывод сообщений в GUI о статусе)
-            System.out.println("Answer sent: " + message);
+            out.println(message);
+            JOptionPane.showMessageDialog(null, "📤 Wysłano: " + message);
 
         } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Fail to connect to the server");
+            JOptionPane.showMessageDialog(null, "❌ Błąd połączenia: " + e.getMessage(), "Błąd", JOptionPane.ERROR_MESSAGE);
         }
-        // TODO: Добавим действие кнопки позже
     }
 }
